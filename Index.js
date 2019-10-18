@@ -1,110 +1,101 @@
-// logic 
-var Word = require("./word.js");
-var inquire = require("inquirer");
+const Word = require("./word.js");
+const inquirer = require("inquirer");
 
-var letterArray = "abcdefghijklmnopqrstuvwxyz";
-
-var UnitedStates = [
-    "Alabama",
-"Alaska",
-"Arizona",
-"Arkansas",
-"California",
-"Colorado",
-"Connecticut",
-"Delaware",
-"Florida",
-"Georgia",
-"Hawaii",
-"Idaho",
-"Illinois",
-"Indiana",
-"Iowa",
-"Kansas",
-"Kentucky",
-"Louisiana",
-"Maine",
-"Maryland",
-"Massachusetts",
-"Michigan",
-"Minnesota",
-"Mississippi",
-"Missouri",
-"Montana",
-"Nebraska",
-"Nevada",
-"New Hampshire",
-"New Jersey",
-"New Mexico",
-"New York",
-"North Carolina",
-"North Dakota",
-"Ohio",
-"Oklahoma",
-"Oregon",
-"Pennsylvania",
-"Rhode Island",
-"South Carolina",
-"South Dakota",
-"Tennessee",
-"Texas",
-"Utah",
-"Vermont",
-"Virginia",
-"Washington",
-"West Virginia",
-"Wisconsin",
-"Wyoming",
+const wordBank = [
+  "mercury", "venus", "earth",
+  "mars", "jupiter", "saturn",
+  "uranus", "neptune", "pluto",
+  "ceres", "eris", "makemake",
+  "haumea"
 ];
 
-var randomIndex= Math.floor(Math.random() * UnitedStates.length);
-var randomWord = UnitedStates[randomIndex];
+let guesses;
+let pickedWords;
+let word;
+let pickedWord;
 
-var computerWord = new Word(randomWord);
-
-var requireNewWord= false;
-var incorrectLetters = [];
-var correctLetters = [];
-
-var guessesLeft = 10;
-
-//selects in random from the u.s names array
-function theLogic(){
-    if(requireNewWord){
-        var randomIndex = Math.floor(Math.random()* UnitedStates.length);
-        var randomWord = UnitedStates[randomIndex];
-
-        computerWord = new Word(randomWord);
-
-        requireNewWord = false;
-    }
-    var wordComplete =  [];
-    if (wordComplete.includes(false)){
-        inquire.prompt({
-            {
-                type:"input",
-                message: "Select letter from A to Z",
-                name: "userInput"
-            }
-        }).then(function(input){
-            if(!letterArray.includes(input.userInput) || 
-            input.userInput. length > 1
-            ){
-                console.log("\nPlease try again.\n");
-                theLogic();
-            }else{
-                if(
-                    incorrectLetters.includes(input.userInput) || 
-                    correctLetters.includes(input.userInput) ||
-                    input.userInput === ""
-                ){
-                    console.log("\nAlready Guessed or Nothing was entered\n");
-                    theLogic();
-                }
-            }
-        }); 
-    }else {
-        console.log("YOU WIN!!! \n")
-    }
+function init() {
+  pickedWords = [];
+  console.log("Hello, and welcome to Word Guess in Space!");
+  console.log("------------------------------------------");
+  playGame();
 }
 
+function playGame() {
+  pickedWord = "";
+  guesses = 15;
+  if(pickedWords.length < wordBank.length) {
+    pickedWord = getWord();
+  } else {
+    // WIN CONDITION
+    console.log("You know a lot about your celestial neighborhood. Cheers!");
+    continuePrompt();
+  }
+  if(pickedWord) {
+    word = new Word(pickedWord);
+    word.makeLetters();
+    makeGuess();
+  }
+}
+
+function getWord() {
+  let rand = Math.floor(Math.random() * wordBank.length);
+  let randomWord = wordBank[rand];
+  if(pickedWords.indexOf(randomWord) === -1) {
+    pickedWords.push(randomWord);
+    return randomWord;
+  } else {
+    return getWord();
+  }
+}
+
+function makeGuess() {
+  let checker = [];
+  inquirer.prompt([
+    {
+      name: "guessedLetter",
+      message: word.update() + 
+              "\nGuess a letter!" +
+              "\nGuesses Left: " + guesses
+    }
+  ])
+  .then(data => {
+    word.letters.forEach(letter => {
+      letter.checkLetter(data.guessedLetter);
+      checker.push(letter.getCharacter());
+    });
+    if(guesses > 0 && checker.indexOf("_") !== -1) {
+      guesses--;
+      if(guesses === 0) {
+        console.log("YOU RAN OUT OF GUESSES! GAME OVER.");
+        continuePrompt();
+      } else {
+        makeGuess();
+      }
+    } else {
+      console.log("CONGRATULATIONS! YOU GOT THE WORD!");
+      console.log(word.update());
+      playGame();
+    }
+  });
+}
+
+function continuePrompt() {
+  inquirer.prompt([
+      {
+        name: "continue",
+        type: "list",
+        message: "Would you like to play again?",
+        choices: ["Yes", "No"]
+      }
+    ])
+  .then(data => {
+      if(data.continue === "Yes") {
+        init();
+      } else {
+        console.log("Thanks for playing!");
+      }
+  });
+}
+
+init();
